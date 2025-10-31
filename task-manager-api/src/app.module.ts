@@ -1,10 +1,20 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { getTypeOrmConfig } from './config/database.config';
+import { UsersModule } from './users/users.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }), // carga .env
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: getTypeOrmConfig,
+    }),
+    UsersModule,
+    TasksModule,
+  ],
 })
 export class AppModule {}
