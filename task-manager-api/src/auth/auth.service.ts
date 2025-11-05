@@ -1,43 +1,28 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
-    const userExists = await this.usersService.findByEmail(registerDto.email);
-    if (userExists) throw new UnauthorizedException('Email ya está en uso');
-
-    const newUser = await this.usersService.create(registerDto);
-
-    const payload = { email: newUser.email, sub: newUser.id };
-
-    return {
-      user: { id: newUser.id, email: newUser.email, name: newUser.name }
-    };
+  async validateUser(email: string, password: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (user && (await bcrypt.compare(password, user.password))) {
+      const { password, ...result } = user;
+      return result;
+    }
+    throw new UnauthorizedException('Credenciales incorrectas');
   }
 
-  async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmail(loginDto.email);
-    if (!user) throw new UnauthorizedException('Credenciales inválidas');
-
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) throw new UnauthorizedException('Credenciales inválidas');
-
-    const payload = { email: user.email, sub: user.id };
-    const token = this.jwtService.sign(payload);
-
+  async login(user: any) {
+    const payload = { sub: user.id, email: user.email, role: user.role };
     return {
-      user: { id: user.id, email: user.email, name: user.name },
-      token,
+      access_token: this.jwtService.sign(payload),
     };
   }
 }
