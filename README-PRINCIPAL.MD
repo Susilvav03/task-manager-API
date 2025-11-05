@@ -1,6 +1,7 @@
 # 🗃️ Task Manager API
 
-Este repositorio contiene la solución completa de una API para la gestión de tareas, desarrollada bajo el *framework* NestJS.
+Este proyecto implementa una **API REST completa para la gestión de tareas**, desarrollada con **NestJS**, **TypeORM** y **JWT**.
+Incluye autenticación segura, paginación, validaciones, interceptores globales y control de acceso por usuario.
 
 ---
 
@@ -13,28 +14,40 @@ El repositorio está organizado en dos directorios principales:
 
 ---
 
-## 🚀 Puesta en Marcha y Uso
+## ⚙️ Requisitos Previos
 
-### Requisitos Previos
+Asegúrate de tener instalados:
+* **Node.js** (versión 18 o superior)
+* **npm o yarn** (gestor de paquetes)
+* **PostgreSQL** (o la base de datos que configures)
+* **Postman** (opcional, para probar los endpoints)
 
-Asegúrate de tener instalados los siguientes componentes:
-* Node.js (LTS recomendado)
-* Un gestor de paquetes (npm o yarn)
-* Una base de datos (PostgreSQL, MySQL, etc., según la configuración del proyecto)
+---
 
-### Instalación
+## 🚀 Instalación y Ejecución
 
 1.  Clona el repositorio:
     ```bash
-    git clone [URL_DE_TU_REPOSITORIO]
+    git clone [URL_DEL_REPOSITORIO]
     cd task-manager-api
     ```
+
 2.  Instala las dependencias:
     ```bash
     npm install
-    # o yarn install
     ```
-3.  Configura las variables de entorno utilizando el archivo de ejemplo proporcionado en `Sprint-1`.
+
+3.  Configura el archivo `.env` en la raíz del proyecto (utiliza el archivo de ejemplo proporcionado en `Sprint-1/`):
+    ```env
+    PORT=3000
+    JWT_SECRET=supersecretkey123
+    DB_HOST=localhost
+    DB_PORT=5432
+    DB_USERNAME=postgres
+    DB_PASSWORD=1234
+    DB_NAME=taskdb
+    ```
+
 4.  Ejecuta la aplicación:
     ```bash
     npm run start:dev
@@ -42,19 +55,40 @@ Asegúrate de tener instalados los siguientes componentes:
 
 ---
 
-## 🎯 Caso de Uso Principal: Listar Tareas (H-1)
+## 🧩 Autenticación y Autorización (JWT)
 
-El primer hito de la API es la funcionalidad de listar tareas, la cual requiere **autenticación JWT**.
+La API utiliza autenticación **JWT (JSON Web Token)**. Para acceder a las rutas protegidas, el usuario debe autenticarse primero con `POST /auth/login` y luego enviar el token en cada petición.
 
-**Endpoint:** `GET /tasks?page=1&limit=10`
+### Endpoints de Autenticación
 
-### 🧠 Flujo de Uso Paso a Paso
+| Función | Método | Endpoint |
+| :--- | :--- | :--- |
+| **Registro** | `POST` | `/auth/register` |
+| **Login** | `POST` | `/auth/login` |
 
-Para poder acceder a este *endpoint* y a cualquier otra ruta protegida, es necesario obtener un *token* de acceso.
+**Uso del Token en Headers:**
 
-#### 1. Registrar Usuario
+---
 
-Se crea una nueva cuenta de usuario para poder iniciar sesión.
+## ✅ Historias de Usuario Implementadas
+
+Todas las historias requieren autenticación JWT.
+
+| HU | Descripción | Endpoint | Método |
+| :--- | :--- | :--- | :--- |
+| **HU-1** | Listar tareas paginadas | `/tasks?page=1&limit=10` | `GET` |
+| **HU-2** | Crear tarea | `/tasks` | `POST` |
+| **HU-3** | Actualizar tarea | `/tasks/:id` | `PUT` |
+| **HU-4** | Cambiar estado (toggle) | `/tasks/:id/toggle` | `PATCH` |
+| **HU-5** | Eliminar tarea | `/tasks/:id` | `DELETE` |
+
+---
+
+## 🧠 Flujo Completo de Uso
+
+El flujo general para interactuar con la API es siempre: **1. Registrar, 2. Loguearse, 3. Usar el Token.**
+
+### 1. Registrar Usuario
 
 * **Endpoint:** `POST /auth/register`
 * **Body (JSON):**
@@ -66,52 +100,7 @@ Se crea una nueva cuenta de usuario para poder iniciar sesión.
     }
     ```
 
-#### 2. Iniciar Sesión
-
-Una vez registrado, se solicita el *token* de acceso enviando las credenciales.
-
-* **Endpoint:** `POST /auth/login`
-* **Body (JSON):**
-    ```json
-    {
-      "email": "andres@test.com",
-      "password": "123456"
-    }
-    ```
-* **Respuesta Esperada (Formato JSON):**
-    ```json
-    {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6..." 
-    }
-    ```
-
-#### 3. Consultar las Tareas (Autenticado)
-
-Finalmente, se utiliza el *token* de la respuesta anterior para acceder al *endpoint* protegido.
-
-* **Endpoint:** `GET /tasks?page=1&limit=10`
-* **Headers:**
-    ```
-    Authorization: Bearer <access_token>
-    ```
-
----
-
-## 🎯 Caso de Uso Secundario: Crear Tarea (HU-2)
-
-El segundo hito de la API corresponde a la creación de tareas.  
-Esta funcionalidad permite a los usuarios autenticados registrar nuevas tareas con un título y una descripción, asociadas automáticamente a su cuenta.
-
-**Endpoint:** `POST /tasks`  
-**Requiere autenticación JWT**
-
----
-
-### 🧠 Flujo de Uso Paso a Paso
-
-#### 1. Iniciar Sesión (Obtener Token)
-
-Para poder crear tareas, el usuario debe haber iniciado sesión previamente y disponer de un *token* de acceso válido.
+### 2. Iniciar Sesión (Obtener Token)
 
 * **Endpoint:** `POST /auth/login`
 * **Body (JSON):**
@@ -128,19 +117,12 @@ Para poder crear tareas, el usuario debe haber iniciado sesión previamente y di
     }
     ```
 
----
+### 3. Ejemplo: Crear una Nueva Tarea (HU-2)
 
-#### 2. Crear una Nueva Tarea
-
-Una vez autenticado, el usuario puede registrar una nueva tarea enviando los datos necesarios.  
-El sistema asociará automáticamente la tarea al usuario autenticado.
+Una vez autenticado, el usuario puede registrar una nueva tarea.
 
 * **Endpoint:** `POST /tasks`
-* **Headers:**
-    ```
-    Authorization: Bearer <access_token>
-    Content-Type: application/json
-    ```
+* **Headers:** `Authorization: Bearer <access_token>`
 * **Body (JSON):**
     ```json
     {
@@ -148,36 +130,52 @@ El sistema asociará automáticamente la tarea al usuario autenticado.
       "description": "Definir layout y componentes principales"
     }
     ```
-
-* **Respuesta Esperada (Formato JSON):**
-    ```json
-    {
-      "success": true,
-      "message": "✅ Registro creado correctamente",
-      "data": {
-        "id": 12,
-        "title": "Diseñar interfaz del panel de control",
-        "description": "Definir layout y componentes principales",
-        "isCompleted": false,
-        "userId": 1,
-        "createdAt": "2025-11-04T18:40:00.000Z"
-      }
-    }
+* **Ejemplo con `curl`:**
+    ```bash
+    curl -X POST http://localhost:3000/tasks \
+    -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..." \
+    -H "Content-Type: application/json" \
+    -d '{
+      "title": "Diseñar interfaz del panel de control",
+      "description": "Definir layout y componentes principales"
+    }'
     ```
 
 ---
 
-### 📘 Ejemplo con `curl`
+## 🧪 Pruebas en Postman (Recomendado)
 
-```bash
-curl -X POST http://localhost:3000/tasks \
--H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..." \
--H "Content-Type: application/json" \
--d '{
-  "title": "Diseñar interfaz del panel de control",
-  "description": "Definir layout y componentes principales"
-}'
+Para automatizar la autenticación, sigue estos pasos:
 
+1.  Abre Postman e importa la colección de *endpoints*.
+2.  En la pestaña **“Tests”** del *endpoint* `POST /auth/login`, agrega el siguiente código para guardar el token automáticamente:
+    ```js
+    pm.environment.set("token", pm.response.json().access_token);
+    ```
+3.  En los *headers* de las peticiones protegidas (rutas `/tasks`), usa la variable de entorno:
+    ```
+    Authorization: Bearer {{token}}
+    ```
+Esto te permitirá ejecutar todas las HU en orden sin copiar y pegar el token manualmente.
+
+---
+
+## 🧠 Resumen Técnico
+
+| Tecnología | Uso |
+| :--- | :--- |
+| **NestJS** | Framework principal |
+| **TypeORM** | ORM y manejo de entidades |
+| **PostgreSQL** | Base de datos |
+| **JWT + Passport** | Autenticación y protección de rutas |
+| **Class-Validator** | Validación de DTOs |
+| **Interceptors** | Estandarización de respuestas |
+| **Guards** | Control de acceso por token |
+| **ConfigModule** | Manejo de variables de entorno |
+
+> 🎉 Proyecto 100% funcional, seguro y listo para producción o despliegue.
+
+---
 
 ## 🤝 Contribución
 
