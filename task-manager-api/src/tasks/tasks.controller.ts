@@ -22,13 +22,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
-  // 🧱 Crear tarea
-  @Post()
-  create(@Body() data: CreateTaskDto) {
-    return this.tasksService.create(data);
-  }
-
-  // 📋 Listar todas las tareas
+  // 📋 Listar tareas paginadas del usuario autenticado
   @Get()
   async findAll(
     @Req() req: Request,
@@ -36,39 +30,43 @@ export class TasksController {
     @Query('limit') limit = 10,
   ) {
     const user = req.user as any;
-    return this.tasksService.findPaginatedByUser(user.userId, Number(page), Number(limit));
+    return this.tasksService.findPaginatedByUser(
+      user.userId,
+      Number(page),
+      Number(limit),
+    );
   }
 
-  // 🔍 Buscar una tarea
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.tasksService.findOne(id);
+  // 🧱 Crear tarea
+  @Post()
+  create(@Req() req: Request, @Body() data: CreateTaskDto) {
+    const user = req.user as any;
+    return this.tasksService.create({ ...data, userId: user.userId });
   }
 
-  // 🔍 Buscar tareas por usuario
-  @Get('user/:userId')
-  findByUser(@Param('userId', ParseIntPipe) userId: number) {
-    return this.tasksService.findByUser(userId);
-  }
-
-  // ✏️ Actualizar tarea
+  // ✏️ Actualizar tarea (solo la suya)
   @Put(':id')
   update(
+    @Req() req: Request,
     @Param('id', ParseIntPipe) id: number,
     @Body() data: UpdateTaskDto,
   ) {
-    return this.tasksService.update(id, data);
+    const user = req.user as any;
+    return this.tasksService.update(id, user.userId, data);
   }
 
-  // ✅ Cambiar estado de tarea
-  @Patch(':id/toggle')
-  toggle(@Param('id', ParseIntPipe) id: number) {
-    return this.tasksService.toggleStatus(id);
-  }
-
-  // ❌ Eliminar tarea
+  // ❌ Eliminar tarea (solo la suya)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.tasksService.remove(id);
+  remove(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+    const user = req.user as any;
+    return this.tasksService.remove(id, user.userId);
+  }
+
+  // ✅ Cambiar estado (solo la suya)
+  @Patch(':id/toggle')
+  toggle(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+    const user = req.user as any;
+    return this.tasksService.toggleStatus(id, user.userId);
   }
 }
+

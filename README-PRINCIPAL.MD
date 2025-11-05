@@ -183,5 +183,4 @@ curl -X POST http://localhost:3000/tasks \
 
 Para información detallada sobre cómo contribuir al proyecto, configurar el entorno de desarrollo y seguir las convenciones de código, consulta la documentación en la carpeta 
 
-
 **`Sprint-1/`**.

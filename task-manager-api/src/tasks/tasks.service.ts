@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from './entities/task.entity';
@@ -20,68 +20,46 @@ export class TasksService {
     take: limit,
   });
 
-  return {
-    total,
-    page,
-    limit,
-    totalPages: Math.ceil(total / limit),
-    data,
-  };
-}
-
-  // 🧱 Crear tarea
-  async create(data: CreateTaskDto): Promise<Task> {
-    try {
-      const task = this.taskRepository.create(data);
-      return await this.taskRepository.save(task);
-    } catch (error) {
-      throw new InternalServerErrorException('Error al crear la tarea');
-    }
+    return {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data,
+    };
   }
 
-  // 📋 Obtener todas las tareas
-  async findAll(): Promise<Task[]> {
-    return this.taskRepository.find({
-      relations: ['user'],
-      order: { id: 'ASC' },
-    });
-  }
 
-  // 🔍 Obtener una tarea por ID
-  async findOne(id: number): Promise<Task> {
-    const task = await this.taskRepository.findOne({
-      where: { id },
-      relations: ['user'],
-    });
-    if (!task) throw new NotFoundException(`Tarea con ID ${id} no encontrada`);
+  // ✅ Validar propiedad de la tarea
+  private async findOwnedTask(id: number, userId: number): Promise<Task> {
+    const task = await this.taskRepository.findOne({ where: { id, userId } });
+    if (!task) throw new ForbiddenException('No tienes permiso para acceder a esta tarea');
     return task;
   }
 
+  // 🧱 Crear tarea
+  async create(data: Partial<Task>): Promise<Task> {
+    const task = this.taskRepository.create(data);
+    return this.taskRepository.save(task);
+  }
+
   // ✏️ Actualizar tarea
-  async update(id: number, data: UpdateTaskDto): Promise<Task> {
-    const task = await this.findOne(id);
+  async update(id: number, userId: number, data: Partial<Task>): Promise<Task> {
+    const task = await this.findOwnedTask(id, userId);
     Object.assign(task, data);
     return this.taskRepository.save(task);
   }
 
-  // ❌ Eliminar tarea
-  async remove(id: number): Promise<void> {
-    const task = await this.findOne(id);
-    await this.taskRepository.remove(task);
-  }
-
-  // 📋 Obtener todas las tareas de un usuario
-  async findByUser(userId: number): Promise<Task[]> {
-    return this.taskRepository.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  // ✅ Cambiar estado (completar tarea)
-  async toggleStatus(id: number): Promise<Task> {
-    const task = await this.findOne(id);
+  // ✅ Cambiar estado
+  async toggleStatus(id: number, userId: number): Promise<Task> {
+    const task = await this.findOwnedTask(id, userId);
     task.isCompleted = !task.isCompleted;
     return this.taskRepository.save(task);
+  }
+
+  // ❌ Eliminar tarea
+  async remove(id: number, userId: number): Promise<void> {
+    const task = await this.findOwnedTask(id, userId);
+    await this.taskRepository.remove(task);
   }
 }
